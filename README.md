@@ -3,7 +3,8 @@
 ## ビルド環境 for Windows
 
 - scoopのインストール
-- scoop install make git go
+- scoop install make git go python
+- pip3 install adafruit-nrfutil
 - go get github.com/arduino/arduino-cli
 
 これをダウンロード＆解凍してexeを％USERPROFILE％\scoop\apps\に移動。
@@ -37,3 +38,25 @@ arduino-cli lib update-index
 arduino-cli lib install SPIMemory
 arduino-cli lib install SX126x-Arduino
 ```
+
+## ビルド
+
+```sh
+git clone https://github.com/144lab/isp4520-sample.git
+cd isp4520-sample
+make build
+```
+
+## 書き込み
+ターゲットをDFUモードにする（後述）
+ターゲットのシリアル通信ポートをPORT=に指定して以下のコマンドを実行。
+```sh
+make PORT=COM4 upload
+```
+
+## DFUモードにする方法
+
+ブートローダーをビルドするときの設定で方法が決定する（ターゲットに依存）
+
+- P0_12をLoにしたままRESET(Samaritaine)
+- RESETして５秒間DFUモード（isp4520用）
