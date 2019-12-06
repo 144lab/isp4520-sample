@@ -60,3 +60,7 @@ make PORT=COM4 upload
 
 - P0_12をLoにしたままRESET(Samaritaine)
 - RESETして５秒間DFUモード（isp4520用）
+
+## ブートローダーの入手
+
+https://github.com/144lab/isp4520-sample/issues/1 参照
