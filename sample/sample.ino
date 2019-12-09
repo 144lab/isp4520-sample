@@ -10,6 +10,7 @@
 // Sample
 // 02-01-06-1A-FF-81-03-07-80-E4-B2-44-00-79-0B-00-00-80-00-8C-89-A5-46-BB-2B-1D-00-00-00-C4-00
 
+#define LED 26
 #define CS 17
 #define SCK 8
 #define MISO 22
@@ -22,9 +23,12 @@ int8_t pins[] = {SCK, MISO, MOSI, CS};
 SPIFlash flash(pins);
 
 void setup() {
-  Serial.setPins(10, 9);
+  Serial.setPins(31, 30);
   Serial.begin(115200);
-  // while (!Serial) delay(10);  // for nrf52840 with native usb
+  while (!Serial) delay(10);  // for nrf52840 with native usb
+
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, 0);
 
   pinMode(RESET, OUTPUT);
   pinMode(WP, OUTPUT);
@@ -34,7 +38,7 @@ void setup() {
   digitalWrite(RESET, 1);
   delay(5000);
 
-  flash.begin();
+  // flash.begin();
 
   /*
   String inputString = "This is a test String";
