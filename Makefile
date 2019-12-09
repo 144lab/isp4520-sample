@@ -1,10 +1,10 @@
-NAME := sample
+NAME := sirc_logger
 FQBN := adafruit:nrf52:feather52832
 PORT := /dev/tty.usbserial-AD0JSEUI
 #CFLAGS:=-DCFG_DEBUG=0 -DRELEASE
 CFLAGS:=-DCFG_DEBUG=0
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"
-OUTPUT:=.\\build\\$(NAME).$(subst :,.,$(FQBN))
+OUTPUT:=$(NAME).$(subst :,.,$(FQBN))
 
 .PHONY: build upload setup mon
 
@@ -20,3 +20,6 @@ setup:
 
 mon:
 	go run . $(PORT)
+
+clean:
+	rm *.elf *.zip *.hex
