@@ -60,6 +60,7 @@ make PORT=COM4 upload
 
 - P0_12をLoにしたままRESET(Samaritaine)
 - RESETして５秒間DFUモード（isp4520用）
+- RESETして10秒間DFUモード(リレー付きPOC基板)
 
 ## ブートローダーの入手
 
