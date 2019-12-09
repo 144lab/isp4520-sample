@@ -86,7 +86,7 @@ func main() {
 					discardCount++
 				}
 			case 0x03:
-				log.Println(string(msg))
+				log.Println(msg[0], string(msg[1:]))
 				msg = msg[0:0]
 				reading = false
 			}

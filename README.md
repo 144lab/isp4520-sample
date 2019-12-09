@@ -27,15 +27,15 @@ C:\Users\irieda\AppData\Local\Arduino15\arduino-cli.yaml を編集。
 board_manager:
   additional_urls:
   - https://www.adafruit.com/package_adafruit_index.json
+  - https://144lab.github.io/arduino_packages/package_144lab_index.json
 ```
 
 保存したのち、
 
 ```sh
 arduino-cli core update-index
-arduino-cli core install adafruit:nrf52
+arduino-cli core install 144lab:nrf52
 arduino-cli lib update-index
-arduino-cli lib install SPIMemory
 arduino-cli lib install SX126x-Arduino
 ```
 

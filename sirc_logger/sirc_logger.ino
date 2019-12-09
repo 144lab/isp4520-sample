@@ -1,12 +1,17 @@
 #include <stdio.h>
 
 #define LED 26
-#define CS 17
-#define SCK 8
-#define MISO 22
-#define MOSI 12
-#define RESET 6
-#define WP 7
+#define CS 6
+#define SCK 10
+#define MISO 29
+#define MOSI 9
+#define RESET 5
+#define HOLD 28
+#define WP 8
+
+#include "TinyFlash.h"
+
+TinyFlash flash(CS);
 
 #define STX 0x02
 #define ETX 0x03
@@ -29,14 +34,28 @@ void Message(const String &message) {
 void setup() {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, 1);
-  Serial.setPins(31, 30);
+  // Serial.setPins(31, 30);
   Serial.begin(115200);
+
+  // pinMode(SCK, OUTPUT);
+  // pinMode(MOSI, OUTPUT);
+  pinMode(CS, OUTPUT);
+  pinMode(RESET, OUTPUT);
+  digitalWrite(RESET, 0);
+  pinMode(HOLD, OUTPUT);
+  digitalWrite(HOLD, 1);
+  pinMode(WP, OUTPUT);
+  digitalWrite(WP, 1);
+  delay(200);
+  digitalWrite(RESET, 1);
+
+  Message("reset boot");
+  uint32_t cap = flash.begin();
+  Message(String("flash begin:") + String(cap));
 
   context.serial = 255;
   context.write0Index = -1;
   context.write1Index = -1;
-  delay(200);
-  Message("reset boot");
 }
 
 void loop() {
@@ -127,7 +146,9 @@ void StartLogging(const String &payload) {
 }
 
 void Erase() {
-  // TODO: implement erase
+  if (!flash.eraseChip()) {
+    Message("flash erase failed");
+  }
   context.write0Index = 0;
   context.write1Index = 0;
 }

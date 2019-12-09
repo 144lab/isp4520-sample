@@ -1,6 +1,6 @@
 NAME := sirc_logger
-FQBN := adafruit:nrf52:feather52832
-PORT := /dev/tty.usbserial-AD0JSEUI
+FQBN := 144lab:nrf52:isp1507spiflash
+PORT := /dev/tty.usbserial-AD0JSHVO
 #CFLAGS:=-DCFG_DEBUG=0 -DRELEASE
 CFLAGS:=-DCFG_DEBUG=0
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"
@@ -23,3 +23,9 @@ mon:
 
 clean:
 	rm *.elf *.zip *.hex
+
+erase:
+	go run tester.go -port $(PORT) -erase
+
+start:
+	go run tester.go -port $(PORT) -start 0
