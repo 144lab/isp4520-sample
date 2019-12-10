@@ -174,7 +174,7 @@ void doCommand(const String &line) {
 
 void StartLogging(const String &payload) {
   int pos = payload.indexOf(",");
-  context.posix = payload.substring(0, pos - 1).toInt();
+  context.posix = payload.substring(0, pos).toInt();
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
   digitalWrite(LED, 0);
