@@ -61,9 +61,9 @@ void setup() {
   delay(200);
   digitalWrite(RESET, 1);
 
-  Message("reset boot");
+  // Message("reset boot");
   uint32_t cap = flash.begin();
-  Message(String("flash begin:") + String(cap));
+  // Message(String("flash begin:") + String(cap));
 
   context.start = 0;
   context.serial = 255;
@@ -326,10 +326,12 @@ void scan_callback(ble_gap_evt_adv_report_t *report) {
           value |= report->data.p_data[26] << 16;
           bat = report->data.p_data[29];
           write(kind, value);
+          /*
           Message(String("kind:") + String(kind) + String(", ") +
                   String("sn:") + String(sn) + String(", ") + String("value:") +
                   String(value) + String(", ") + String("bat:") + String(bat) +
                   String(", "));
+          */
         }
       }
     }

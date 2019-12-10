@@ -12,7 +12,7 @@
 
 #include <Arduino.h>
 
-extern void Message(const String &message);
+// extern void Message(const String &message);
 
 #include "TinyFlash.h"
 
