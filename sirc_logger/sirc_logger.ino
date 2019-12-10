@@ -182,7 +182,7 @@ void StartLogging(const String &payload) {
 
 void Erase() {
   context.start = 0;
-  digitalWrite(LED, 1);
+  digitalWrite(LED, 0);
   if (!flash.eraseChip()) {
     Message("flash erase failed");
   }
@@ -190,6 +190,7 @@ void Erase() {
     context.buffer[i].count = 0;
     context.buffer[i].index = 0;
   }
+  digitalWrite(LED, 1);
 }
 
 void Check() {
