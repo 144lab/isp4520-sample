@@ -51,6 +51,7 @@ void setup() {
   // pinMode(SCK, OUTPUT);
   // pinMode(MOSI, OUTPUT);
   pinMode(CS, OUTPUT);
+  digitalWrite(CS, 1);
   pinMode(RESET, OUTPUT);
   digitalWrite(RESET, 0);
   pinMode(HOLD, OUTPUT);
@@ -66,8 +67,8 @@ void setup() {
 
   context.start = 0;
   context.serial = 255;
-  context.buffer[0].count = -1;
-  context.buffer[1].count = -1;
+  context.buffer[0].count = 0;
+  context.buffer[1].count = 0;
   getIndex = 0;
   maxIndex = 0;
 
@@ -202,8 +203,12 @@ void Check() {
 }
 
 void Get(int maxNum) {
-  _flash(&context.buffer[0], 0);
-  _flash(&context.buffer[1], 16777216);
+  if (context.buffer[0].index > 0) {
+    _flash(&context.buffer[0], 0);
+  }
+  if (context.buffer[1].index > 0) {
+    _flash(&context.buffer[1], 16777216);
+  }
   context.start = 0;
   digitalWrite(LED, 1);
   static char buff[9];
@@ -239,7 +244,7 @@ void Next() {
   for (uint32_t i = 0; i < 100; i++) {
     bool any = false;
     char buff[11] = {0};
-    if (getIndex <= context.buffer[0].count) {
+    if (getIndex < context.buffer[0].count) {
       if (flash.beginRead(getIndex * 6)) {
         buff[0] = flash.readNextByte();
         buff[1] = flash.readNextByte();
@@ -250,7 +255,7 @@ void Next() {
       }
       any |= true;
     }
-    if (getIndex <= context.buffer[1].count) {
+    if (getIndex < context.buffer[1].count) {
       if (flash.beginRead(getIndex * 6 + 16777216)) {
         buff[5] = flash.readNextByte();
         buff[6] = flash.readNextByte();

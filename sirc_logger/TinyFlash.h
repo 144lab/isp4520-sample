@@ -7,8 +7,10 @@ class TinyFlash {
  public:
   TinyFlash(uint8_t cs = 6);
   uint32_t begin(void);
-  boolean beginRead(uint32_t addr), writePage(uint32_t addr, uint8_t *data),
-      eraseChip(void), eraseSector(uint32_t addr);
+  boolean beginRead(uint32_t addr);
+  boolean writePage(uint32_t addr, uint8_t *data);
+  boolean eraseChip(void);
+  boolean eraseSector(uint32_t addr);
   uint8_t readNextByte(void);
   void endRead(void);
   void Enable();
