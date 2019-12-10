@@ -204,12 +204,14 @@ void Check() {
 }
 
 void Get(int maxNum) {
+  /*
   if (context.buffer[0].index > 0) {
     _flash(&context.buffer[0], 0);
   }
   if (context.buffer[1].index > 0) {
     _flash(&context.buffer[1], 16777216);
   }
+  */
   context.start = 0;
   digitalWrite(LED, 1);
   static char buff[9];
