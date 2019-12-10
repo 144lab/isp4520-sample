@@ -98,11 +98,13 @@ void loop() {
         index = -1;
         break;
       default:
-        buff[index] = (char)(dat);
-        index++;
-        if (index > 15) {
-          Message("buffer overflow");
-          index = -1;
+        if (index >= 0) {
+          buff[index] = (char)(dat);
+          index++;
+          if (index > 15) {
+            Message("buffer overflow");
+            index = -1;
+          }
         }
     }
   }
