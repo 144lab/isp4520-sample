@@ -20,6 +20,7 @@ var (
 	get      bool
 	getAll   bool
 	getNext  bool
+	dump     bool
 	raw      bool
 	portName string
 )
@@ -40,6 +41,7 @@ func main() {
 	flag.BoolVar(&get, "get", false, "get data 100")
 	flag.BoolVar(&getAll, "all", false, "get all data")
 	flag.BoolVar(&getNext, "next", false, "get next data 100")
+	flag.BoolVar(&dump, "dump", false, "dump")
 	flag.BoolVar(&raw, "raw", false, "raw mode")
 	flag.StringVar(&portName, "port", "", "serial port name")
 	flag.Parse()
@@ -62,6 +64,8 @@ func main() {
 		send("E")
 	case getNext:
 		send("F")
+	case dump:
+		send("G")
 	}
 	buff := make([]byte, 1024)
 	msg := make([]byte, 0)

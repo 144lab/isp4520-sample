@@ -29,16 +29,16 @@ erase:
 	go run tester.go -port $(PORT) -erase
 
 check:
-	# 約30秒
 	go run tester.go -port $(PORT) -check
 
 start:
 	go run tester.go -port $(PORT) -start 29
 
 get:
-	# 約30秒
 	go run tester.go -port $(PORT) -get
 
 next:
-	# 約30秒
 	go run tester.go -port $(PORT) -raw -next
+
+dump:
+	go run tester.go -port $(PORT) -raw -dump

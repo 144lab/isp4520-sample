@@ -21,15 +21,17 @@ extern void Message(const String &message);
 #define CMD_WRITEDISABLE 0x04
 #define CMD_READSTAT1 0x05
 #define CMD_WRITEENABLE 0x06
+#define CMD_WRITEREG3 0x11
 #define CMD_SECTORERASE 0x20
 #define CMD_CHIPERASE 0x60
 #define CMD_ID 0x90
+#define CMD_4BMODE 0xB7
 
 #define STAT_BUSY 0x01
 #define STAT_WRTEN 0x02
 
 // Currently rigged for W25Q80BV only
-#define CHIP_BYTES 256L * 1024L * 1024L
+#define CHIP_BYTES 32L * 1024L * 1024L
 
 #include <SPI.h>
 #include <nrf52.h>
@@ -63,8 +65,9 @@ uint32_t TinyFlash::begin(void) {
   devID = spi_xfer(0);
   Disable();
 
-  String s = String(manID) + String(":") + String(devID);
-  Message(s);
+  cmd(CMD_4BMODE);  // ADS(4bytes addressing)　Mode
+  Disable();
+
   // Chip capacity is hardcoded for now
   return ((manID == 0xEF) && (devID == 0x18)) ? CHIP_BYTES : 0L;
 }
@@ -89,6 +92,7 @@ boolean TinyFlash::beginRead(uint32_t addr) {
   if ((addr >= CHIP_BYTES) || !waitForReady()) return false;
 
   cmd(CMD_READDATA);
+  (void)spi_xfer(addr >> 24);
   (void)spi_xfer(addr >> 16);
   (void)spi_xfer(addr >> 8);
   (void)spi_xfer(addr);
@@ -130,6 +134,7 @@ boolean TinyFlash::eraseSector(uint32_t addr) {
   if (!waitForReady() || !writeEnable()) return false;
 
   cmd(CMD_SECTORERASE);
+  (void)spi_xfer(addr >> 24);  // Chip rounds this down to
   (void)spi_xfer(addr >> 16);  // Chip rounds this down to
   (void)spi_xfer(addr >> 8);   // prior 4K sector boundary;
   (void)spi_xfer(0);           // lowest bits are ignored.
@@ -169,6 +174,7 @@ boolean TinyFlash::writePage(uint32_t addr, uint8_t *data) {
   if ((addr >= CHIP_BYTES) || !waitForReady() || !writeEnable()) return false;
 
   cmd(CMD_PAGEPROG);
+  (void)spi_xfer(addr >> 24);
   (void)spi_xfer(addr >> 16);
   (void)spi_xfer(addr >> 8);
   (void)spi_xfer(0);  // If len=256, page boundary only (datasheet 7.2.21)

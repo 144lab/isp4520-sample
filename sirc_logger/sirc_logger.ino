@@ -84,7 +84,7 @@ void setup() {
 }
 
 void loop() {
-  static char buff[16];
+  static char buff[18];
   static int index = -1;
   if (Serial.available() > 0) {
     int dat = Serial.read();
@@ -101,7 +101,7 @@ void loop() {
         if (index >= 0) {
           buff[index] = (char)(dat);
           index++;
-          if (index > 15) {
+          if (index > 17) {
             Message("buffer overflow");
             index = -1;
           }
@@ -161,6 +161,13 @@ void doCommand(const String &line) {
       }
       Next();
       break;
+    case 0x47:
+      if (payload.length() > 0) {
+        Message("invalid command");
+        return;
+      }
+      Dump();
+      break;
   }
 }
 
@@ -195,6 +202,8 @@ void Check() {
 }
 
 void Get(int maxNum) {
+  _flash(&context.buffer[0], 0);
+  _flash(&context.buffer[1], 16777216);
   context.start = 0;
   digitalWrite(LED, 1);
   static char buff[9];
@@ -215,36 +224,46 @@ void Get(int maxNum) {
   }
 }
 
-void Next() {
-  if (maxIndex <= getIndex) {
-    return;
+void Dump() {
+  static uint8_t buff[256];
+  if (flash.beginRead(0)) {
+    for (int i = 0; i < 256; i++) {
+      buff[i] = flash.readNextByte();
+    }
+    flash.endRead();
+    Serial.write(buff, sizeof(buff));
   }
+}
+
+void Next() {
   for (uint32_t i = 0; i < 100; i++) {
     bool any = false;
     char buff[11] = {0};
     if (getIndex <= context.buffer[0].count) {
-      flash.beginRead(getIndex * 6);
-      buff[0] = flash.readNextByte();
-      buff[1] = flash.readNextByte();
-      buff[2] = flash.readNextByte();
-      buff[3] = flash.readNextByte();
-      buff[4] = flash.readNextByte();
-      flash.endRead();
+      if (flash.beginRead(getIndex * 6)) {
+        buff[0] = flash.readNextByte();
+        buff[1] = flash.readNextByte();
+        buff[2] = flash.readNextByte();
+        buff[3] = flash.readNextByte();
+        buff[4] = flash.readNextByte();
+        flash.endRead();
+      }
       any |= true;
     }
     if (getIndex <= context.buffer[1].count) {
-      flash.beginRead(getIndex * 6 + 16777216);
-      buff[5] = flash.readNextByte();
-      buff[6] = flash.readNextByte();
-      buff[7] = flash.readNextByte();
-      buff[8] = flash.readNextByte();
-      buff[9] = flash.readNextByte();
-      buff[10] = flash.readNextByte();
-      flash.endRead();
+      if (flash.beginRead(getIndex * 6 + 16777216)) {
+        buff[5] = flash.readNextByte();
+        buff[6] = flash.readNextByte();
+        buff[7] = flash.readNextByte();
+        buff[8] = flash.readNextByte();
+        buff[9] = flash.readNextByte();
+        buff[10] = flash.readNextByte();
+        flash.endRead();
+      }
       any |= true;
     }
     Serial.write(buff, sizeof(buff));
-    if (!any) {
+    if (!any || maxIndex <= getIndex) {
       break;
     }
     getIndex++;
@@ -252,11 +271,11 @@ void Next() {
 }
 
 void _flash(Buffer *buffer, uint32_t offset) {
-  if (buffer->index < 256) return;
   if (!flash.writePage((buffer->count * 6 + offset) & 0xffffff00,
                        buffer->buffer)) {
     Message("write failed:" + String(buffer->count));
   }
+  memset(buffer->buffer, 0, sizeof(buffer->buffer));
   buffer->index = 0;
 }
 
@@ -266,17 +285,17 @@ void write(uint8_t kind, uint32_t value) {
   Buffer *buffer = &(context.buffer[kind]);
   uint32_t sec = (millis() - context.start) / 1000;
   buffer->buffer[buffer->index++] = (sec >> 0) & 0xff;
-  _flash(buffer, offset);
+  if (buffer->index == 256) _flash(buffer, offset);
   buffer->buffer[buffer->index++] = (sec >> 8) & 0xff;
-  _flash(buffer, offset);
+  if (buffer->index == 256) _flash(buffer, offset);
   buffer->buffer[buffer->index++] = (sec >> 16) & 0xff;
-  _flash(buffer, offset);
+  if (buffer->index == 256) _flash(buffer, offset);
   buffer->buffer[buffer->index++] = (value >> 0) & 0xff;
-  _flash(buffer, offset);
+  if (buffer->index == 256) _flash(buffer, offset);
   buffer->buffer[buffer->index++] = (value >> 8) & 0xff;
-  _flash(buffer, offset);
+  if (buffer->index == 256) _flash(buffer, offset);
   buffer->buffer[buffer->index++] = (value >> 16) & 0xff;
-  _flash(buffer, offset);
+  if (buffer->index == 256) _flash(buffer, offset);
   buffer->count++;
 }
 
