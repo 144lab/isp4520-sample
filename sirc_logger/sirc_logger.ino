@@ -188,7 +188,7 @@ void StartLogging(const String &payload) {
   context.posix = payload.substring(0, pos).toInt();
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
-  digitalWrite(LED, 0);
+  // digitalWrite(LED, 0);
 }
 
 void StopLogging() {
@@ -199,12 +199,12 @@ void StopLogging() {
     _flash(&context.buffer[1], 16777216);
   }
   context.start = 0;
-  digitalWrite(LED, 1);
+  // digitalWrite(LED, 1);
 }
 
 void Erase() {
   context.start = 0;
-  digitalWrite(LED, 0);
+  // digitalWrite(LED, 0);
   if (!flash.eraseChip()) {
     Message("flash erase failed");
   }
@@ -213,7 +213,7 @@ void Erase() {
     context.buffer[i].wrote = 0;
     context.buffer[i].index = 0;
   }
-  digitalWrite(LED, 1);
+  // digitalWrite(LED, 1);
 }
 
 void Check() {
