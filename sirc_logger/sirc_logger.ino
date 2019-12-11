@@ -16,11 +16,13 @@ TinyFlash flash(CS);
 
 #define STX 0x02
 #define ETX 0x03
+#define MAX_ENTRIES 2796202
 
 const uint8_t header[] = {0x02, 0x01, 0x06, 0x1A, 0xFF, 0x81, 0x03, 0x07,
                           0x80, 0xE4, 0xB2, 0x44, 0x00, 0x79, 0x0B};
 typedef struct {
   int32_t count;
+  int32_t wrote;
   int index;
   uint8_t buffer[256];
 } Buffer;
@@ -68,7 +70,9 @@ void setup() {
   context.start = 0;
   context.serial = 255;
   context.buffer[0].count = 0;
+  context.buffer[0].wrote = 0;
   context.buffer[1].count = 0;
+  context.buffer[1].wrote = 0;
   getIndex = 0;
   maxIndex = 0;
 
@@ -167,6 +171,13 @@ void doCommand(const String &line) {
         Message("invalid command");
         return;
       }
+      StopLogging();
+      break;
+    case 0x48:
+      if (payload.length() > 0) {
+        Message("invalid command");
+        return;
+      }
       Dump();
       break;
   }
@@ -180,6 +191,17 @@ void StartLogging(const String &payload) {
   digitalWrite(LED, 0);
 }
 
+void StopLogging() {
+  if (context.buffer[0].index > 0) {
+    _flash(&context.buffer[0], 0);
+  }
+  if (context.buffer[1].index > 0) {
+    _flash(&context.buffer[1], 16777216);
+  }
+  context.start = 0;
+  digitalWrite(LED, 1);
+}
+
 void Erase() {
   context.start = 0;
   digitalWrite(LED, 0);
@@ -188,6 +210,7 @@ void Erase() {
   }
   for (int i; i < 2; i++) {
     context.buffer[i].count = 0;
+    context.buffer[i].wrote = 0;
     context.buffer[i].index = 0;
   }
   digitalWrite(LED, 1);
@@ -204,23 +227,13 @@ void Check() {
 }
 
 void Get(int maxNum) {
-  /*
-  if (context.buffer[0].index > 0) {
-    _flash(&context.buffer[0], 0);
-  }
-  if (context.buffer[1].index > 0) {
-    _flash(&context.buffer[1], 16777216);
-  }
-  */
-  context.start = 0;
-  digitalWrite(LED, 1);
   static char buff[9];
   String s = "1";
   sprintf(buff, "%02X", context.serial);
   s += buff;
   sprintf(buff, "%08X", context.posix);
   s += buff;
-  uint32_t bigger = max(context.buffer[0].count, context.buffer[1].count);
+  uint32_t bigger = max(context.buffer[0].wrote, context.buffer[1].wrote);
   sprintf(buff, "%08X", bigger);
   s += buff;
   Send(s);
@@ -247,7 +260,8 @@ void Next() {
   for (uint32_t i = 0; i < 100; i++) {
     bool any = false;
     char buff[11] = {0};
-    if (getIndex < context.buffer[0].count) {
+    noInterrupts();
+    if (getIndex < context.buffer[0].wrote) {
       if (flash.beginRead(getIndex * 6)) {
         buff[0] = flash.readNextByte();
         buff[1] = flash.readNextByte();
@@ -258,7 +272,9 @@ void Next() {
       }
       any |= true;
     }
-    if (getIndex < context.buffer[1].count) {
+    interrupts();
+    noInterrupts();
+    if (getIndex < context.buffer[1].wrote) {
       if (flash.beginRead(getIndex * 6 + 16777216)) {
         buff[5] = flash.readNextByte();
         buff[6] = flash.readNextByte();
@@ -270,8 +286,9 @@ void Next() {
       }
       any |= true;
     }
+    interrupts();
     Serial.write(buff, sizeof(buff));
-    if (!any || maxIndex <= getIndex) {
+    if (!any || maxIndex < getIndex) {
       break;
     }
     getIndex++;
@@ -279,12 +296,13 @@ void Next() {
 }
 
 void _flash(Buffer *buffer, uint32_t offset) {
-  if (!flash.writePage((buffer->count * 6 + offset) & 0xffffff00,
-                       buffer->buffer)) {
-    Message("write failed:" + String(buffer->count));
+  int32_t count = buffer->count;
+  if (!flash.writePage((count * 6 + offset) & 0xffffff00, buffer->buffer)) {
+    Message("write failed:" + String(count));
   }
   memset(buffer->buffer, 0, sizeof(buffer->buffer));
   buffer->index = 0;
+  buffer->wrote = count;
 }
 
 void write(uint8_t kind, uint32_t value) {
@@ -292,19 +310,25 @@ void write(uint8_t kind, uint32_t value) {
   uint32_t offset = uint32_t(kind) * 16777216;
   Buffer *buffer = &(context.buffer[kind]);
   uint32_t sec = (millis() - context.start) / 1000;
-  buffer->buffer[buffer->index++] = (sec >> 0) & 0xff;
-  if (buffer->index == 256) _flash(buffer, offset);
-  buffer->buffer[buffer->index++] = (sec >> 8) & 0xff;
-  if (buffer->index == 256) _flash(buffer, offset);
-  buffer->buffer[buffer->index++] = (sec >> 16) & 0xff;
-  if (buffer->index == 256) _flash(buffer, offset);
-  buffer->buffer[buffer->index++] = (value >> 0) & 0xff;
-  if (buffer->index == 256) _flash(buffer, offset);
-  buffer->buffer[buffer->index++] = (value >> 8) & 0xff;
-  if (buffer->index == 256) _flash(buffer, offset);
-  buffer->buffer[buffer->index++] = (value >> 16) & 0xff;
-  if (buffer->index == 256) _flash(buffer, offset);
-  buffer->count++;
+  if (buffer->count < MAX_ENTRIES) {
+    buffer->buffer[buffer->index++] = (sec >> 0) & 0xff;
+    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[buffer->index++] = (sec >> 8) & 0xff;
+    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[buffer->index++] = (sec >> 16) & 0xff;
+    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[buffer->index++] = (value >> 0) & 0xff;
+    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[buffer->index++] = (value >> 8) & 0xff;
+    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[buffer->index++] = (value >> 16) & 0xff;
+    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->count++;
+  }
+  if (context.buffer[0].count >= MAX_ENTRIES &&
+      context.buffer[1].count >= MAX_ENTRIES) {
+    StopLogging();
+  }
 }
 
 // Sample PAYLOAD

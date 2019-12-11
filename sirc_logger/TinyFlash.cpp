@@ -109,30 +109,30 @@ void TinyFlash::endRead(void) { Disable(); }
 
 // Erase the whole chip.  Boom, gone.  Use with caution.
 boolean TinyFlash::eraseChip(void) {
-  if (!waitForReady() || !writeEnable()) return false;
-
+  if (!waitForReady() || !writeEnable()) {
+    return false;
+  }
   // Might want to have this clear the block protect bits
-
   cmd(CMD_CHIPERASE);
   Disable();
-
   // Datasheet says 400S max
   bool ok;
   for (int i = 0; i < 40; i++) {
     ok |= waitForReady(10000L);
     if (ok) break;
   }
-  if (!ok) return false;
-
+  if (!ok) {
+    return false;
+  }
   writeDisable();
-
   return true;
 }
 
 // Erase one 4K sector
 boolean TinyFlash::eraseSector(uint32_t addr) {
-  if (!waitForReady() || !writeEnable()) return false;
-
+  if (!waitForReady() || !writeEnable()) {
+    return false;
+  }
   cmd(CMD_SECTORERASE);
   (void)spi_xfer(addr >> 24);  // Chip rounds this down to
   (void)spi_xfer(addr >> 16);  // Chip rounds this down to
@@ -140,10 +140,11 @@ boolean TinyFlash::eraseSector(uint32_t addr) {
   (void)spi_xfer(0);           // lowest bits are ignored.
   Disable();
 
-  if (!waitForReady(1000L)) return false;  // Datasheet says 400ms max
+  if (!waitForReady(1000L)) {
+    return false;  // Datasheet says 400ms max
+  }
 
   writeDisable();
-
   return true;
 }
 
@@ -171,7 +172,9 @@ void TinyFlash::writeDisable(void) {
 // no other options.  This is the ONLY write method provided by the library;
 // other capabilities (if needed) may be implemented in client code.
 boolean TinyFlash::writePage(uint32_t addr, uint8_t *data) {
-  if ((addr >= CHIP_BYTES) || !waitForReady() || !writeEnable()) return false;
+  if ((addr >= CHIP_BYTES) || !waitForReady() || !writeEnable()) {
+    return false;
+  }
 
   cmd(CMD_PAGEPROG);
   (void)spi_xfer(addr >> 24);
@@ -185,9 +188,9 @@ boolean TinyFlash::writePage(uint32_t addr, uint8_t *data) {
 
   delay(3);  // Max page program time according to datasheet
 
-  if (!waitForReady()) return false;
-
+  if (!waitForReady()) {
+    return false;
+  }
   writeDisable();
-
   return true;
 }

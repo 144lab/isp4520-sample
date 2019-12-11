@@ -17,8 +17,10 @@ class TinyFlash {
   void Disable();
 
  private:
-  boolean waitForReady(uint32_t timeout = 100L), writeEnable(void);
-  void writeDisable(void), cmd(uint8_t c);
+  boolean waitForReady(uint32_t timeout = 100L);
+  boolean writeEnable(void);
+  void writeDisable(void);
+  void cmd(uint8_t c);
   uint8_t cs_pin;
 };
 

@@ -34,6 +34,9 @@ check:
 start:
 	go run tester.go -port $(PORT) -start 29
 
+stop:
+	go run tester.go -port $(PORT) -stop
+
 get:
 	go run tester.go -port $(PORT) -get
 
