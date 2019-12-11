@@ -38,7 +38,7 @@ stop:
 	go run tester.go -port $(PORT) -stop
 
 get:
-	go run tester.go -port $(PORT) -get
+	go run tester.go -port $(PORT) -all
 
 next:
 	go run tester.go -port $(PORT) -raw -next
