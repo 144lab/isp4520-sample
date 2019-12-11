@@ -325,10 +325,6 @@ void write(uint8_t kind, uint32_t value) {
     if (buffer->index == 256) _flash(buffer, offset);
     buffer->count++;
   }
-  if (context.buffer[0].count >= MAX_ENTRIES &&
-      context.buffer[1].count >= MAX_ENTRIES) {
-    StopLogging();
-  }
 }
 
 // Sample PAYLOAD
