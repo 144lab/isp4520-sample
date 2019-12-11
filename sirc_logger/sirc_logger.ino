@@ -334,14 +334,20 @@ void write(uint8_t kind, uint32_t value) {
 //                                              ......80-00-8C-89-A5-46-BB-2B-SN-YY-YY-YY-ZZ-00
 
 void scan_callback(ble_gap_evt_adv_report_t *report) {
-  static uint8_t buffer[256];
-  if (report->data.len >= 30) {
-    if (memcmp(report->data.p_data, header, sizeof(header)) == 0) {
-      if (report->data.len) {
+  static uint8_t last0[32] = {0};
+  static uint8_t last1[32] = {0};
+  static uint8_t *last[2] = {last0, last1};
+  do {
+    if (report->data.len >= 30) {
+      if (memcmp(report->data.p_data, header, sizeof(header)) == 0) {
         uint8_t kind, sn, bat;
         uint32_t value;
         kind = uint16_t(report->data.p_data[15]);
         kind |= uint16_t(report->data.p_data[16]);
+        if (kind != 0 && kind != 1) break;
+        //重複スキップ
+        if (memcmp(last[kind], report->data.p_data, report->data.len) == 0)
+          break;
         sn = report->data.p_data[25];
         if (context.start > 0 && sn == context.serial) {
           value = report->data.p_data[28] << 0;
@@ -356,9 +362,13 @@ void scan_callback(ble_gap_evt_adv_report_t *report) {
                   String(", "));
           */
         }
+        if (report->data.len <= 32) {
+          // 重複データ検出用にPAYLOADを保存
+          memcpy(last[kind], report->data.p_data, report->data.len);
+        }
       }
     }
-  }
+  } while (false);
   // For Softdevice v6: after received a report, scanner will be
   // paused We need to call Scanner resume() to continue scanning
   Bluefruit.Scanner.resume();
