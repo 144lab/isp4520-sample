@@ -16,7 +16,10 @@ TinyFlash flash(CS);
 
 #define STX 0x02
 #define ETX 0x03
-#define MAX_ENTRIES 2796202
+// 最大レコード数　1ブロック分少なくして末尾の１ブロックは開始情報の記録に使う
+#define MAX_ENTRIES (2796202 - 43)
+// FLASH末尾ブロックの先頭オフセット
+#define INFO_OFFSET 33554176
 
 const uint8_t header[] = {0x02, 0x01, 0x06, 0x1A, 0xFF, 0x81, 0x03, 0x07,
                           0x80, 0xE4, 0xB2, 0x44, 0x00, 0x79, 0x0B};
@@ -90,6 +93,21 @@ void setup() {
   Bluefruit.Scanner.start(0);  // 0 = Don't stop scanning after n seconds
 
   startTimer(1000000);
+
+  if (flash.beginRead(INFO_OFFSET)) {
+    if(flash.readNextByte()==0xa5) {
+      uint32_t posix, start;
+      uint8_t serial;
+      serial = flash.readNextByte()<<0;
+      posix = flash.readNextByte()<<0;
+      posix |= flash.readNextByte()<<8;
+      posix |= flash.readNextByte()<<16;
+      posix |= flash.readNextByte()<<24;
+      context.posix = posix;
+      context.serial = serial;
+    }
+    flash.endRead();
+  }
 }
 
 void loop() {
@@ -156,19 +174,12 @@ void doCommand(const String &line) {
       }
       Check();
       break;
-    case 0x44:
-      if (payload.length() > 0) {
-        Message("invalid command");
-        return;
-      }
-      Get(100);
-      break;
     case 0x45:
       if (payload.length() > 0) {
         Message("invalid command");
         return;
       }
-      Get(-1);
+      Get();
       break;
     case 0x46:
       if (payload.length() > 0) {
@@ -184,22 +195,25 @@ void doCommand(const String &line) {
       }
       StopLogging();
       break;
-    case 0x48:
-      if (payload.length() > 0) {
-        Message("invalid command");
-        return;
-      }
-      Dump();
-      break;
   }
 }
 
+uint8_t block[256] = {0};
 void StartLogging(const String &payload) {
   int pos = payload.indexOf(",");
   context.posix = payload.substring(0, pos).toInt();
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
   // digitalWrite(LED, 0);
+  block[0] = 0xa5; // start mark
+  block[1] = (context.serial >> 0) & 0xff;
+  block[2] = (context.posix >> 0) & 0xff;
+  block[3] = (context.posix >> 8) & 0xff;
+  block[4] = (context.posix >> 16) & 0xff;
+  block[5] = (context.posix >> 24) & 0xff;
+  if (!flash.writePage(INFO_OFFSET, block)) {
+    Message("write failed: start info");
+  }
 }
 
 void StopLogging() {
@@ -237,7 +251,7 @@ void Check() {
   Send(s);
 }
 
-void Get(int maxNum) {
+void Get() {
   static char buff[9];
   String s = "1";
   sprintf(buff, "%02X", context.serial);
@@ -249,30 +263,13 @@ void Get(int maxNum) {
   s += buff;
   Send(s);
   getIndex = 0;
-  if (maxNum < 0) {
-    maxIndex = bigger;
-  } else {
-    maxIndex = uint32_t(maxNum);
-  }
-}
-
-void Dump() {
-  static uint8_t buff[256];
-  if (flash.beginRead(0)) {
-    for (int i = 0; i < 256; i++) {
-      buff[i] = flash.readNextByte();
-    }
-    flash.endRead();
-    Serial.write(buff, sizeof(buff));
-  }
 }
 
 void Next() {
   for (uint32_t i = 0; i < 100; i++) {
-    bool any = false;
     char buff[11] = {0};
     noInterrupts();
-    if (getIndex < context.buffer[0].wrote) {
+    if (getIndex < MAX_ENTRIES) {
       if (flash.beginRead(getIndex * 6)) {
         buff[0] = flash.readNextByte();
         buff[1] = flash.readNextByte();
@@ -281,11 +278,10 @@ void Next() {
         buff[4] = flash.readNextByte();
         flash.endRead();
       }
-      any |= true;
     }
     interrupts();
     noInterrupts();
-    if (getIndex < context.buffer[1].wrote) {
+    if (getIndex < MAX_ENTRIES) {
       if (flash.beginRead(getIndex * 6 + 16777216)) {
         buff[5] = flash.readNextByte();
         buff[6] = flash.readNextByte();
@@ -295,13 +291,9 @@ void Next() {
         buff[10] = flash.readNextByte();
         flash.endRead();
       }
-      any |= true;
     }
     interrupts();
     Serial.write(buff, sizeof(buff));
-    if (!any || maxIndex < getIndex) {
-      break;
-    }
     getIndex++;
   }
 }
