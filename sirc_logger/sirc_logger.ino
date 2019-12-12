@@ -86,6 +86,8 @@ void setup() {
   Bluefruit.Scanner.setInterval(160, 80);  // in units of 0.625 ms
   Bluefruit.Scanner.useActiveScan(true);   // Request scan response data
   Bluefruit.Scanner.start(0);  // 0 = Don't stop scanning after n seconds
+
+  startTimer(1000000);
 }
 
 void loop() {
@@ -189,7 +191,6 @@ void StartLogging(const String &payload) {
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
   // digitalWrite(LED, 0);
-  startTimer(1000000);
 }
 
 void StopLogging() {
@@ -201,7 +202,6 @@ void StopLogging() {
   }
   context.start = 0;
   // digitalWrite(LED, 1);
-  stopTimer();
 }
 
 void Erase() {
@@ -337,8 +337,10 @@ extern "C" void TIMER2_IRQHandler(void) {
       ((NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk) != 0)) {
     NRF_TIMER2->EVENTS_COMPARE[0] = 0;  // Clear compare register 0 event
   }
-  write(0, sirc_value[0]);
-  write(1, sirc_value[1]);
+  if (context.start > 0) {
+    write(0, sirc_value[0]);
+    write(1, sirc_value[1]);
+  }
 }
 
 void startTimer(unsigned long us) {
