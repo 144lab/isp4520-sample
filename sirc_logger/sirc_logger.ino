@@ -189,7 +189,7 @@ void StartLogging(const String &payload) {
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
   // digitalWrite(LED, 0);
-  startTimer(1000);
+  startTimer(1000000);
 }
 
 void StopLogging() {
