@@ -36,6 +36,8 @@ struct {
 
 uint32_t getIndex;
 uint32_t maxIndex;
+static uint32_t sirc_value[2] = {0};
+static boolean tick;
 
 void Send(const String &payload) {
   Serial.printf("\x02%s\x03", payload.c_str());
@@ -115,6 +117,13 @@ void loop() {
         }
     }
   }
+  noInterrupts();
+  if (tick && context.start > 0) {
+    write(0, sirc_value[0]);
+    write(1, sirc_value[1]);
+    tick = false;
+  }
+  interrupts();
 }
 
 void doCommand(const String &line) {
@@ -329,18 +338,13 @@ void write(uint8_t kind, uint32_t value) {
   }
 }
 
-static uint32_t sirc_value[2] = {0};
-
 extern "C" void TIMER2_IRQHandler(void) {
   int32_t ret = 0;
   if ((NRF_TIMER2->EVENTS_COMPARE[0] != 0) &&
       ((NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk) != 0)) {
     NRF_TIMER2->EVENTS_COMPARE[0] = 0;  // Clear compare register 0 event
   }
-  if (context.start > 0) {
-    write(0, sirc_value[0]);
-    write(1, sirc_value[1]);
-  }
+  tick = true;
 }
 
 void startTimer(unsigned long us) {
