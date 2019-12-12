@@ -189,6 +189,7 @@ void StartLogging(const String &payload) {
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
   // digitalWrite(LED, 0);
+  startTimer(1000);
 }
 
 void StopLogging() {
@@ -200,6 +201,7 @@ void StopLogging() {
   }
   context.start = 0;
   // digitalWrite(LED, 1);
+  stopTimer();
 }
 
 void Erase() {
@@ -327,6 +329,41 @@ void write(uint8_t kind, uint32_t value) {
   }
 }
 
+static uint32_t sirc_value[2] = {0};
+
+extern "C" void TIMER2_IRQHandler(void) {
+  int32_t ret = 0;
+  if ((NRF_TIMER2->EVENTS_COMPARE[0] != 0) &&
+      ((NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk) != 0)) {
+    NRF_TIMER2->EVENTS_COMPARE[0] = 0;  // Clear compare register 0 event
+  }
+  write(0, sirc_value[0]);
+  write(1, sirc_value[1]);
+}
+
+void startTimer(unsigned long us) {
+  NRF_TIMER2->TASKS_STOP = 1;
+  NRF_TIMER2->MODE = TIMER_MODE_MODE_Timer;  // Set the timer in Counter Mode
+  NRF_TIMER2->TASKS_CLEAR = 1;  // clear the task first to be usable for later
+  NRF_TIMER2->PRESCALER = 4;    // Set prescaler. Higher number gives slower
+                                // timer.
+  NRF_TIMER2->BITMODE = TIMER_BITMODE_BITMODE_32Bit
+                        << TIMER_BITMODE_BITMODE_Pos;
+  NRF_TIMER2->CC[0] = us;  // Set value for TIMER2 compare register 0
+
+  // Enable interrupt on Timer 2, both for CC[0] and CC[1] compare match events
+  NRF_TIMER2->INTENSET = TIMER_INTENSET_COMPARE0_Enabled
+                         << TIMER_INTENSET_COMPARE0_Pos;
+  // Clear the timer when COMPARE0 event is triggered
+  NRF_TIMER2->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Enabled
+                       << TIMER_SHORTS_COMPARE0_CLEAR_Pos;
+
+  NRF_TIMER2->TASKS_START = 1;  // Start TIMER
+  NVIC_EnableIRQ(TIMER2_IRQn);
+}
+
+void stopTimer() { NRF_TIMER2->TASKS_STOP = 1; }
+
 // Sample PAYLOAD
 // 02-01-06-1A-FF-81-03-07-80-E4-B2-44-00-79-0B-00-00-80-00-8C-89-A5-46-BB-2B-1D-00-00-00-C4-00
 //                                              ~~~~~ 00-00:圧力計
@@ -334,9 +371,6 @@ void write(uint8_t kind, uint32_t value) {
 //                                              ......80-00-8C-89-A5-46-BB-2B-SN-YY-YY-YY-ZZ-00
 
 void scan_callback(ble_gap_evt_adv_report_t *report) {
-  static uint8_t last0[32] = {0};
-  static uint8_t last1[32] = {0};
-  static uint8_t *last[2] = {last0, last1};
   do {
     if (report->data.len >= 30) {
       if (memcmp(report->data.p_data, header, sizeof(header)) == 0) {
@@ -345,26 +379,19 @@ void scan_callback(ble_gap_evt_adv_report_t *report) {
         kind = uint16_t(report->data.p_data[15]);
         kind |= uint16_t(report->data.p_data[16]);
         if (kind != 0 && kind != 1) break;
-        //重複スキップ
-        if (memcmp(last[kind], report->data.p_data, report->data.len) == 0)
-          break;
         sn = report->data.p_data[25];
         if (context.start > 0 && sn == context.serial) {
           value = report->data.p_data[28] << 0;
           value |= report->data.p_data[27] << 8;
           value |= report->data.p_data[26] << 16;
           bat = report->data.p_data[29];
-          write(kind, value);
+          sirc_value[kind] = value;
           /*
           Message(String("kind:") + String(kind) + String(", ") +
                   String("sn:") + String(sn) + String(", ") + String("value:") +
                   String(value) + String(", ") + String("bat:") + String(bat) +
                   String(", "));
           */
-        }
-        if (report->data.len <= 32) {
-          // 重複データ検出用にPAYLOADを保存
-          memcpy(last[kind], report->data.p_data, report->data.len);
         }
       }
     }
