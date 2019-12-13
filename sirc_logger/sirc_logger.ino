@@ -211,7 +211,11 @@ void loop() {
       write(1, sirc_value[1]);
     }
   }
-  digitalWrite(LED, (millis() % 2000) < 1995);
+  if (context.start > 0) {
+    digitalWrite(LED, (millis() % 2000) < 1995);
+  } else {
+    digitalWrite(LED, 1);
+  }
 }
 
 void doCommand(const String &line) {
