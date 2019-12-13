@@ -92,7 +92,7 @@ void setup() {
   Bluefruit.Scanner.useActiveScan(true);   // Request scan response data
   Bluefruit.Scanner.start(0);  // 0 = Don't stop scanning after n seconds
 
-  startTimer(1000000);
+  startTimer(100);
 
   if (flash.beginRead(INFO_OFFSET)) {
     if(flash.readNextByte()==0xa5) {
@@ -331,11 +331,16 @@ void write(uint8_t kind, uint32_t value) {
 }
 
 extern "C" void SysTick_Handler(void) {
-  tick = true;
+  static int count = 0;
+  count ++;
+  if (count>=10) {
+    tick = true;
+    count -= 10;
+  }
 }
 
 void startTimer(unsigned long us) {
-  SysTick_Config( F_CPU*us/1000 );
+  SysTick_Config( F_CPU/1000*us );
 }
 
 void stopTimer() {}
