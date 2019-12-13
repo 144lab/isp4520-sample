@@ -19,29 +19,32 @@ setup:
 	pip3 install --user adafruit-nrfutil
 
 mon:
-	go run tester.go -port $(PORT)
+	./tester -port $(PORT)
 
 clean:
 	rm *.elf *.zip *.hex
 
-erase:
+./tester:
+	go build tester.go
+
+erase: ./tester
 	# 約30秒
-	go run tester.go -port $(PORT) -erase
+	./tester -port $(PORT) -erase
 
-check:
-	go run tester.go -port $(PORT) -check
+check: ./tester
+	./tester -port $(PORT) -check
 
-start:
-	go run tester.go -port $(PORT) -start 3
+start: ./tester
+	./tester -port $(PORT) -start 3
 
-stop:
-	go run tester.go -port $(PORT) -stop
+stop: ./tester
+	./tester -port $(PORT) -stop
 
-get:
-	go run tester.go -port $(PORT) -all
+get: ./tester
+	./tester -port $(PORT) -all
 
-next:
-	go run tester.go -port $(PORT) -raw -next
+next: ./tester
+	./tester -port $(PORT) -raw -next
 
-dump:
-	go run tester.go -port $(PORT) -raw -dump
+dump: ./tester
+	./tester -port $(PORT) -raw -dump

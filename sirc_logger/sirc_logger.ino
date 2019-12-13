@@ -24,8 +24,8 @@ TinyFlash flash(CS);
 const uint8_t header[] = {0x02, 0x01, 0x06, 0x1A, 0xFF, 0x81, 0x03, 0x07,
                           0x80, 0xE4, 0xB2, 0x44, 0x00, 0x79, 0x0B};
 typedef struct {
-  int32_t count;
-  int32_t wrote;
+  uint32_t count;
+  uint32_t wrote;
   int index;
   uint8_t buffer[256];
 } Buffer;
@@ -76,7 +76,9 @@ void setup() {
   context.serial = 255;
   context.buffer[0].count = 0;
   context.buffer[0].wrote = 0;
+  memset(context.buffer[0].buffer, 0xff, sizeof(context.buffer[0].buffer));
   context.buffer[1].count = 0;
+  memset(context.buffer[1].buffer, 0xff, sizeof(context.buffer[1].buffer));
   context.buffer[1].wrote = 0;
   getIndex = 0;
   maxIndex = 0;
@@ -220,10 +222,10 @@ void StartLogging(const String &payload) {
 }
 
 void StopLogging() {
-  if (context.buffer[0].index > 0) {
+  if ((context.buffer[0].count*6)&0xff) {
     _flash(&context.buffer[0], 0);
   }
-  if (context.buffer[1].index > 0) {
+  if ((context.buffer[1].count*6)&0xff) {
     _flash(&context.buffer[1], 16777216);
   }
   context.start = 0;
@@ -302,12 +304,11 @@ void Next() {
 }
 
 void _flash(Buffer *buffer, uint32_t offset) {
-  int32_t count = buffer->count;
+  uint32_t count = buffer->count;
   if (!flash.writePage((count * 6 + offset) & 0xffffff00, buffer->buffer)) {
     Message("write failed:" + String(count));
   }
-  memset(buffer->buffer, 0, sizeof(buffer->buffer));
-  buffer->index = 0;
+  memset(buffer->buffer, 0xff, sizeof(buffer->buffer));
   buffer->wrote = count;
 }
 
@@ -315,20 +316,21 @@ void write(uint8_t kind, uint32_t value) {
   if (kind != 0 && kind != 1) return;
   uint32_t offset = uint32_t(kind) * 16777216;
   Buffer *buffer = &(context.buffer[kind]);
+  uint32_t index = (buffer->count*6)&0xff;
   uint32_t sec = (millis() - context.start) / 1000;
   if (buffer->count < MAX_ENTRIES) {
-    buffer->buffer[buffer->index++] = (sec >> 0) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (sec >> 8) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (sec >> 16) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (value >> 0) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (value >> 8) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (value >> 16) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[index++] = (sec >> 0) & 0xff;
+    if (index == 256) {_flash(buffer, offset); index = 0;}
+    buffer->buffer[index++] = (sec >> 8) & 0xff;
+    if (index == 256) {_flash(buffer, offset); index = 0;}
+    buffer->buffer[index++] = (sec >> 16) & 0xff;
+    if (index == 256) {_flash(buffer, offset); index = 0;}
+    buffer->buffer[index++] = (value >> 0) & 0xff;
+    if (index == 256) {_flash(buffer, offset); index = 0;}
+    buffer->buffer[index++] = (value >> 8) & 0xff;
+    if (index == 256) {_flash(buffer, offset); index = 0;}
+    buffer->buffer[index++] = (value >> 16) & 0xff;
+    if (index == 256) {_flash(buffer, offset); index = 0;}
     buffer->count++;
   }
 }
