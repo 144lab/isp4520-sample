@@ -330,37 +330,15 @@ void write(uint8_t kind, uint32_t value) {
   }
 }
 
-extern "C" void TIMER2_IRQHandler(void) {
-  int32_t ret = 0;
-  if ((NRF_TIMER2->EVENTS_COMPARE[0] != 0) &&
-      ((NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk) != 0)) {
-    NRF_TIMER2->EVENTS_COMPARE[0] = 0;  // Clear compare register 0 event
-  }
+extern "C" void SysTick_Handler(void) {
   tick = true;
 }
 
 void startTimer(unsigned long us) {
-  NRF_TIMER2->TASKS_STOP = 1;
-  NRF_TIMER2->MODE = TIMER_MODE_MODE_Timer;  // Set the timer in Counter Mode
-  NRF_TIMER2->TASKS_CLEAR = 1;  // clear the task first to be usable for later
-  NRF_TIMER2->PRESCALER = 4;    // Set prescaler. Higher number gives slower
-                                // timer.
-  NRF_TIMER2->BITMODE = TIMER_BITMODE_BITMODE_32Bit
-                        << TIMER_BITMODE_BITMODE_Pos;
-  NRF_TIMER2->CC[0] = us;  // Set value for TIMER2 compare register 0
-
-  // Enable interrupt on Timer 2, both for CC[0] and CC[1] compare match events
-  NRF_TIMER2->INTENSET = TIMER_INTENSET_COMPARE0_Enabled
-                         << TIMER_INTENSET_COMPARE0_Pos;
-  // Clear the timer when COMPARE0 event is triggered
-  NRF_TIMER2->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Enabled
-                       << TIMER_SHORTS_COMPARE0_CLEAR_Pos;
-
-  NRF_TIMER2->TASKS_START = 1;  // Start TIMER
-  NVIC_EnableIRQ(TIMER2_IRQn);
+  SysTick_Config( F_CPU*us/1000 );
 }
 
-void stopTimer() { NRF_TIMER2->TASKS_STOP = 1; }
+void stopTimer() {}
 
 // Sample PAYLOAD
 // 02-01-06-1A-FF-81-03-07-80-E4-B2-44-00-79-0B-00-00-80-00-8C-89-A5-46-BB-2B-1D-00-00-00-C4-00
