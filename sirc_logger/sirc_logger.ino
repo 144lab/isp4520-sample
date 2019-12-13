@@ -166,7 +166,7 @@ void setup() {
       context.buffer[0].wrote = index;
       context.buffer[1].count = index;
       context.buffer[1].wrote = index;
-      context.start = uint32_t(-start * 1000);
+      context.start = uint32_t(-(start + 10) * 1000);
       break;
     }
     index++;
