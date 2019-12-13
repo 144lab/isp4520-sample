@@ -23,6 +23,9 @@ TinyFlash flash(CS);
 // 後半へのオフセット
 #define OFFSET 16777216
 
+// Counter is in 32kHz ticks. (NRF_WDT->CRV + 1)/32768 seconds
+#define WATCHDOG_COUNTER (32768 * 2)
+
 const uint8_t header[] = {0x02, 0x01, 0x06, 0x1A, 0xFF, 0x81, 0x03, 0x07,
                           0x80, 0xE4, 0xB2, 0x44, 0x00, 0x79, 0x0B};
 typedef struct {
@@ -174,6 +177,10 @@ void setup() {
       break;
     }
   }
+  NRF_WDT->CONFIG = (WDT_CONFIG_SLEEP_Run << WDT_CONFIG_SLEEP_Pos);
+  NRF_WDT->CRV = WATCHDOG_COUNTER;
+  NRF_WDT->RREN = WDT_RREN_RR0_Enabled << WDT_RREN_RR0_Pos;
+  NRF_WDT->TASKS_START = 1;
 }
 
 void loop() {
@@ -216,6 +223,7 @@ void loop() {
   } else {
     digitalWrite(LED, 1);
   }
+  NRF_WDT->RR[0] = WDT_RR_RR_Reload;
 }
 
 void doCommand(const String &line) {
