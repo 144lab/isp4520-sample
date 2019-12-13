@@ -95,17 +95,17 @@ void setup() {
   Bluefruit.Scanner.useActiveScan(true);   // Request scan response data
   Bluefruit.Scanner.start(0);  // 0 = Don't stop scanning after n seconds
 
-  //startTimer(100);
+  // startTimer(100);
 
   if (flash.beginRead(INFO_OFFSET)) {
-    if(flash.readNextByte()==0xa5) {
+    if (flash.readNextByte() == 0xa5) {
       uint32_t posix, start;
       uint8_t serial;
-      serial = flash.readNextByte()<<0;
-      posix = flash.readNextByte()<<0;
-      posix |= flash.readNextByte()<<8;
-      posix |= flash.readNextByte()<<16;
-      posix |= flash.readNextByte()<<24;
+      serial = flash.readNextByte() << 0;
+      posix = flash.readNextByte() << 0;
+      posix |= flash.readNextByte() << 8;
+      posix |= flash.readNextByte() << 16;
+      posix |= flash.readNextByte() << 24;
       context.posix = posix;
       context.serial = serial;
     }
@@ -114,47 +114,49 @@ void setup() {
 
   uint32_t start = 0;
   uint32_t index = 0;
-  while(true) {
-    uint8_t l0,l8,l16;
-    uint8_t b0=0xff;
-    uint8_t b1=0xff;
+  while (true) {
+    uint8_t l0, l8, l16;
+    uint8_t b0 = 0xff;
+    uint8_t b1 = 0xff;
     uint32_t dt;
     if (flash.beginRead(index * 6)) {
       l0 = flash.readNextByte();
-      dt = l0<<0;
+      dt = l0 << 0;
       b0 &= l0;
       l8 = flash.readNextByte();
-      dt |= l8<<8;
+      dt |= l8 << 8;
       b0 &= l8;
       l16 = flash.readNextByte();
-      dt |= l16<<16;
+      dt |= l16 << 16;
       b0 &= l16;
-      if (!(l16 == 0xff || l16==0xff && l8==0xff || l16==0xff && l8==0xff && l0==0xff)) {
-        if (start<dt) {
+      if (!(l16 == 0xff || l16 == 0xff && l8 == 0xff ||
+            l16 == 0xff && l8 == 0xff && l0 == 0xff)) {
+        if (start < dt) {
           start = dt;
         }
       }
-      for(int i=0; i<3; i++) {
+      for (int i = 0; i < 3; i++) {
         b0 &= flash.readNextByte();
       }
       flash.endRead();
     }
     if (flash.beginRead(index * 6 + OFFSET)) {
       l0 = flash.readNextByte();
-      dt = l0<<0;
+      dt = l0 << 0;
       b1 &= l0;
       l8 = flash.readNextByte();
-      dt |= l8<<8;
+      dt |= l8 << 8;
       b1 &= l8;
       l16 = flash.readNextByte();
-      dt |= l16<<16;
+      dt |= l16 << 16;
       b1 &= l16;
-      if (!(l16 == 0xff || l16==0xff && l8==0xff || l16==0xff && l8==0xff && l0==0xff)) {
-        if (start<dt) {
+      if (!(l16 == 0xff || l16 == 0xff && l8 == 0xff ||
+            l16 == 0xff && l8 == 0xff && l0 == 0xff)) {
+        if (start < dt) {
           start = dt;
         }
       }
-      for(int i=0; i<3; i++) {
+      for (int i = 0; i < 3; i++) {
         b1 &= flash.readNextByte();
       }
       flash.endRead();
@@ -164,11 +166,11 @@ void setup() {
       context.buffer[0].wrote = index;
       context.buffer[1].count = index;
       context.buffer[1].wrote = index;
-      context.start = uint32_t(-start*1000);
+      context.start = uint32_t(-start * 1000);
       break;
     }
     index++;
-    if (index >= MAX_ENTRIES-1) {
+    if (index >= MAX_ENTRIES - 1) {
       break;
     }
   }
@@ -201,14 +203,15 @@ void loop() {
   }
   static uint32_t last = 0;
   uint32_t ms = millis();
-  uint32_t tick = ms/1000;
-  if(tick>last) {
+  uint32_t tick = ms / 1000;
+  if (tick > last) {
     last = tick;
     if (context.start > 0) {
       write(0, sirc_value[0]);
       write(1, sirc_value[1]);
     }
   }
+  digitalWrite(LED, (millis() % 2000) < 1995);
 }
 
 void doCommand(const String &line) {
@@ -273,7 +276,7 @@ void StartLogging(const String &payload) {
   context.serial = payload.substring(pos + 1).toInt();
   context.start = millis();
   // digitalWrite(LED, 0);
-  block[0] = 0xa5; // start mark
+  block[0] = 0xa5;  // start mark
   block[1] = (context.serial >> 0) & 0xff;
   block[2] = (context.posix >> 0) & 0xff;
   block[3] = (context.posix >> 8) & 0xff;
@@ -285,10 +288,10 @@ void StartLogging(const String &payload) {
 }
 
 void StopLogging() {
-  if ((context.buffer[0].count*6) & 0xff > 0) {
+  if ((context.buffer[0].count * 6) & 0xff > 0) {
     _flash(&context.buffer[0], 0);
   }
-  if ((context.buffer[1].count*6) & 0xff > 0) {
+  if ((context.buffer[1].count * 6) & 0xff > 0) {
     _flash(&context.buffer[1], OFFSET);
   }
   context.start = 0;
@@ -378,21 +381,39 @@ void write(uint8_t kind, uint32_t value) {
   if (kind != 0 && kind != 1) return;
   uint32_t offset = uint32_t(kind) * 16777216;
   Buffer *buffer = &(context.buffer[kind]);
-  uint32_t index = (buffer->count*6)&0xff;
+  uint32_t index = (buffer->count * 6) & 0xff;
   uint32_t sec = (millis() - context.start) / 1000;
   if (buffer->count < MAX_ENTRIES) {
     buffer->buffer[index++] = (sec >> 0) & 0xff;
-    if (index == 256) {_flash(buffer, offset); index = 0;}
+    if (index == 256) {
+      _flash(buffer, offset);
+      index = 0;
+    }
     buffer->buffer[index++] = (sec >> 8) & 0xff;
-    if (index == 256) {_flash(buffer, offset); index = 0;}
+    if (index == 256) {
+      _flash(buffer, offset);
+      index = 0;
+    }
     buffer->buffer[index++] = (sec >> 16) & 0xff;
-    if (index == 256) {_flash(buffer, offset); index = 0;}
+    if (index == 256) {
+      _flash(buffer, offset);
+      index = 0;
+    }
     buffer->buffer[index++] = (value >> 0) & 0xff;
-    if (index == 256) {_flash(buffer, offset); index = 0;}
+    if (index == 256) {
+      _flash(buffer, offset);
+      index = 0;
+    }
     buffer->buffer[index++] = (value >> 8) & 0xff;
-    if (index == 256) {_flash(buffer, offset); index = 0;}
+    if (index == 256) {
+      _flash(buffer, offset);
+      index = 0;
+    }
     buffer->buffer[index++] = (value >> 16) & 0xff;
-    if (index == 256) {_flash(buffer, offset); index = 0;}
+    if (index == 256) {
+      _flash(buffer, offset);
+      index = 0;
+    }
     buffer->count++;
   }
 }
