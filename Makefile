@@ -1,6 +1,6 @@
 NAME := sirc_logger
 FQBN := 144lab:nrf52:isp1507spiflash
-PORT := /dev/tty.usbserial-AD0JSG7O
+PORT := /dev/tty.usbserial-AD0JSD43
 #CFLAGS:=-DCFG_DEBUG=0 -DRELEASE
 CFLAGS:=-DCFG_DEBUG=0
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"

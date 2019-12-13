@@ -92,7 +92,7 @@ void setup() {
   Bluefruit.Scanner.useActiveScan(true);   // Request scan response data
   Bluefruit.Scanner.start(0);  // 0 = Don't stop scanning after n seconds
 
-  startTimer(100);
+  //startTimer(100);
 
   if (flash.beginRead(INFO_OFFSET)) {
     if(flash.readNextByte()==0xa5) {
@@ -135,13 +135,16 @@ void loop() {
         }
     }
   }
-  noInterrupts();
-  if (tick && context.start > 0) {
-    write(0, sirc_value[0]);
-    write(1, sirc_value[1]);
-    tick = false;
+  static uint32_t last = 0;
+  uint32_t ms = millis();
+  uint32_t tick = ms/1000;
+  if(tick>last) {
+    last = tick;
+    if (context.start > 0) {
+      write(0, sirc_value[0]);
+      write(1, sirc_value[1]);
+    }
   }
-  interrupts();
 }
 
 void doCommand(const String &line) {
@@ -329,7 +332,7 @@ void write(uint8_t kind, uint32_t value) {
     buffer->count++;
   }
 }
-
+/*
 extern "C" void SysTick_Handler(void) {
   static int count = 0;
   count ++;
@@ -344,6 +347,7 @@ void startTimer(unsigned long us) {
 }
 
 void stopTimer() {}
+*/
 
 // Sample PAYLOAD
 // 02-01-06-1A-FF-81-03-07-80-E4-B2-44-00-79-0B-00-00-80-00-8C-89-A5-46-BB-2B-1D-00-00-00-C4-00
