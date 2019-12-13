@@ -20,13 +20,14 @@ TinyFlash flash(CS);
 #define MAX_ENTRIES (2796202 - 43)
 // FLASH末尾ブロックの先頭オフセット
 #define INFO_OFFSET 33554176
+// 後半へのオフセット
+#define OFFSET 16777216
 
 const uint8_t header[] = {0x02, 0x01, 0x06, 0x1A, 0xFF, 0x81, 0x03, 0x07,
                           0x80, 0xE4, 0xB2, 0x44, 0x00, 0x79, 0x0B};
 typedef struct {
   int32_t count;
   int32_t wrote;
-  int index;
   uint8_t buffer[256];
 } Buffer;
 
@@ -76,8 +77,10 @@ void setup() {
   context.serial = 255;
   context.buffer[0].count = 0;
   context.buffer[0].wrote = 0;
+  memset(context.buffer[0].buffer, 0xff, sizeof(context.buffer[0].buffer));
   context.buffer[1].count = 0;
   context.buffer[1].wrote = 0;
+  memset(context.buffer[1].buffer, 0xff, sizeof(context.buffer[1].buffer));
   getIndex = 0;
   maxIndex = 0;
 
@@ -93,6 +96,7 @@ void setup() {
   Bluefruit.Scanner.start(0);  // 0 = Don't stop scanning after n seconds
 
   //startTimer(100);
+  return;
 
   if (flash.beginRead(INFO_OFFSET)) {
     if(flash.readNextByte()==0xa5) {
@@ -107,6 +111,67 @@ void setup() {
       context.serial = serial;
     }
     flash.endRead();
+  }
+
+  uint32_t start = 0;
+  uint32_t index = 0;
+  while(true) {
+    uint8_t l0,l8,l16;
+    uint8_t b0=0xff;
+    uint8_t b1=0xff;
+    uint32_t dt;
+    if (flash.beginRead(index * 6)) {
+      l0 = flash.readNextByte();
+      dt = l0<<0;
+      b0 &= l0;
+      l8 = flash.readNextByte();
+      dt |= l8<<8;
+      b0 &= l8;
+      l16 = flash.readNextByte();
+      dt |= l16<<16;
+      b0 &= l16;
+      if (!(l16 == 0xff || l16==0xff && l8==0xff || l16==0xff && l8==0xff && l0==0xff)) {
+        if (start<dt) {
+          start = dt;
+        }
+      }
+      for(int i=0; i<3; i++) {
+        b0 &= flash.readNextByte();
+      }
+      flash.endRead();
+    }
+    if (flash.beginRead(index * 6 + OFFSET)) {
+      l0 = flash.readNextByte();
+      dt = l0<<0;
+      b1 &= l0;
+      l8 = flash.readNextByte();
+      dt |= l8<<8;
+      b1 &= l8;
+      l16 = flash.readNextByte();
+      dt |= l16<<16;
+      b1 &= l16;
+      if (!(l16 == 0xff || l16==0xff && l8==0xff || l16==0xff && l8==0xff && l0==0xff)) {
+        if (start<dt) {
+          start = dt;
+        }
+      }
+      for(int i=0; i<3; i++) {
+        b1 &= flash.readNextByte();
+      }
+      flash.endRead();
+    }
+    if (b0 == 0xff && b1 == 0xff) {
+      context.buffer[0].count = index;
+      context.buffer[0].wrote = index;
+      context.buffer[1].count = index;
+      context.buffer[1].wrote = index;
+      context.start = uint32_t(-start);
+      break;
+    }
+    index++;
+    if (index >= MAX_ENTRIES-1) {
+      break;
+    }
   }
 }
 
@@ -177,6 +242,7 @@ void doCommand(const String &line) {
       }
       Check();
       break;
+    case 0x44:
     case 0x45:
       if (payload.length() > 0) {
         Message("invalid command");
@@ -220,10 +286,10 @@ void StartLogging(const String &payload) {
 }
 
 void StopLogging() {
-  if (context.buffer[0].index > 0) {
+  if ((context.buffer[0].count*6) & 0xff > 0) {
     _flash(&context.buffer[0], 0);
   }
-  if (context.buffer[1].index > 0) {
+  if ((context.buffer[1].count*6) & 0xff > 0) {
     _flash(&context.buffer[1], 16777216);
   }
   context.start = 0;
@@ -239,7 +305,6 @@ void Erase() {
   for (int i; i < 2; i++) {
     context.buffer[i].count = 0;
     context.buffer[i].wrote = 0;
-    context.buffer[i].index = 0;
   }
   digitalWrite(LED, 1);
 }
@@ -285,7 +350,7 @@ void Next() {
     interrupts();
     noInterrupts();
     if (getIndex < MAX_ENTRIES) {
-      if (flash.beginRead(getIndex * 6 + 16777216)) {
+      if (flash.beginRead(getIndex * 6 + OFFSET)) {
         buff[5] = flash.readNextByte();
         buff[6] = flash.readNextByte();
         buff[7] = flash.readNextByte();
@@ -306,48 +371,32 @@ void _flash(Buffer *buffer, uint32_t offset) {
   if (!flash.writePage((count * 6 + offset) & 0xffffff00, buffer->buffer)) {
     Message("write failed:" + String(count));
   }
-  memset(buffer->buffer, 0, sizeof(buffer->buffer));
-  buffer->index = 0;
+  memset(buffer->buffer, 0xff, sizeof(buffer->buffer));
   buffer->wrote = count;
 }
 
 void write(uint8_t kind, uint32_t value) {
   if (kind != 0 && kind != 1) return;
-  uint32_t offset = uint32_t(kind) * 16777216;
+  uint32_t offset = uint32_t(kind) * OFFSET;
   Buffer *buffer = &(context.buffer[kind]);
   uint32_t sec = (millis() - context.start) / 1000;
+  uint32_t index = (buffer->count*6)&0xff;
   if (buffer->count < MAX_ENTRIES) {
-    buffer->buffer[buffer->index++] = (sec >> 0) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (sec >> 8) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (sec >> 16) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (value >> 0) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (value >> 8) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
-    buffer->buffer[buffer->index++] = (value >> 16) & 0xff;
-    if (buffer->index == 256) _flash(buffer, offset);
+    buffer->buffer[index++] = (sec >> 0) & 0xff;
+    if (index & 0xff == 0) _flash(buffer, offset);
+    buffer->buffer[index++] = (sec >> 8) & 0xff;
+    if (index & 0xff == 0) _flash(buffer, offset);
+    buffer->buffer[index++] = (sec >> 16) & 0xff;
+    if (index & 0xff == 0) _flash(buffer, offset);
+    buffer->buffer[index++] = (value >> 0) & 0xff;
+    if (index & 0xff == 0) _flash(buffer, offset);
+    buffer->buffer[index++] = (value >> 8) & 0xff;
+    if (index & 0xff == 0) _flash(buffer, offset);
+    buffer->buffer[index++] = (value >> 16) & 0xff;
+    if (index & 0xff == 0) _flash(buffer, offset);
     buffer->count++;
   }
 }
-/*
-extern "C" void SysTick_Handler(void) {
-  static int count = 0;
-  count ++;
-  if (count>=10) {
-    tick = true;
-    count -= 10;
-  }
-}
-
-void startTimer(unsigned long us) {
-  SysTick_Config( F_CPU/1000*us );
-}
-
-void stopTimer() {}
-*/
 
 // Sample PAYLOAD
 // 02-01-06-1A-FF-81-03-07-80-E4-B2-44-00-79-0B-00-00-80-00-8C-89-A5-46-BB-2B-1D-00-00-00-C4-00
