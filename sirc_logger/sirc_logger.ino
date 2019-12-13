@@ -218,11 +218,13 @@ void loop() {
       write(1, sirc_value[1]);
     }
   }
+  /*
   if (context.start > 0) {
     digitalWrite(LED, (millis() % 2000) < 1995);
   } else {
     digitalWrite(LED, 1);
   }
+  */
   NRF_WDT->RR[0] = WDT_RR_RR_Reload;
 }
 
