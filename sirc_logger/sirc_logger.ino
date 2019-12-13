@@ -383,17 +383,17 @@ void write(uint8_t kind, uint32_t value) {
   uint32_t index = (buffer->count*6)&0xff;
   if (buffer->count < MAX_ENTRIES) {
     buffer->buffer[index++] = (sec >> 0) & 0xff;
-    if (index & 0xff == 0) _flash(buffer, offset);
+    if (index & 0xff == 0) {_flash(buffer, offset); index =0;}
     buffer->buffer[index++] = (sec >> 8) & 0xff;
-    if (index & 0xff == 0) _flash(buffer, offset);
+    if (index & 0xff == 0) {_flash(buffer, offset); index =0;}
     buffer->buffer[index++] = (sec >> 16) & 0xff;
-    if (index & 0xff == 0) _flash(buffer, offset);
+    if (index & 0xff == 0) {_flash(buffer, offset); index =0;}
     buffer->buffer[index++] = (value >> 0) & 0xff;
-    if (index & 0xff == 0) _flash(buffer, offset);
+    if (index & 0xff == 0) {_flash(buffer, offset); index =0;}
     buffer->buffer[index++] = (value >> 8) & 0xff;
-    if (index & 0xff == 0) _flash(buffer, offset);
+    if (index & 0xff == 0) {_flash(buffer, offset); index =0;}
     buffer->buffer[index++] = (value >> 16) & 0xff;
-    if (index & 0xff == 0) _flash(buffer, offset);
+    if (index & 0xff == 0) {_flash(buffer, offset); index =0;}
     buffer->count++;
   }
 }
