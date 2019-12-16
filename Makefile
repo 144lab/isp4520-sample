@@ -1,6 +1,6 @@
 NAME := sirc_logger
 FQBN := 144lab:nrf52:isp1507spiflash
-PORT := /dev/tty.usbserial-AD0JSHVO
+PORT := /dev/tty.usbserial-AD0JSG7O
 #CFLAGS:=-DCFG_DEBUG=0 -DRELEASE
 CFLAGS:=-DCFG_DEBUG=0
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"
@@ -32,7 +32,7 @@ check:
 	go run tester.go -port $(PORT) -check
 
 start:
-	go run tester.go -port $(PORT) -start 29
+	go run tester.go -port $(PORT) -start 3
 
 stop:
 	go run tester.go -port $(PORT) -stop

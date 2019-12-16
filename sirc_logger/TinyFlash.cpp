@@ -117,8 +117,9 @@ boolean TinyFlash::eraseChip(void) {
   Disable();
   // Datasheet says 400S max
   bool ok;
-  for (int i = 0; i < 40; i++) {
-    ok |= waitForReady(10000L);
+  for (int i = 0; i < 400; i++) {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload;
+    ok |= waitForReady(1000L);
     if (ok) break;
   }
   if (!ok) {
