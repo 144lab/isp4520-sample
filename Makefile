@@ -1,6 +1,6 @@
-NAME := LoRaReceiver
+NAME := LoRaTransmitter
 FQBN := 144lab:nrf52:isp1507spiflash
-PORT := $(shell ls -1 /dev/tty.usbserial-D*)
+PORT := $(shell ls -1 /dev/tty.usbserial-A*)
 #CFLAGS:=-DCFG_DEBUG=0
 CFLAGS:=-DCFG_DEBUG=0 -DREGION_AS923
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"
