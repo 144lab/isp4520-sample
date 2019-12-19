@@ -1,8 +1,9 @@
 NAME := LoRaTransmitter
 FQBN := 144lab:nrf52:isp1507spiflash
 PORT := $(shell ls -1 /dev/tty.usbserial-A*)
-#CFLAGS:=-DCFG_DEBUG=0
-CFLAGS:=-DCFG_DEBUG=0 -DREGION_AS923
+REGION:=REGION_AS923
+RX_CHANNEL:=1
+CFLAGS:=-DCFG_DEBUG=0 -D$(REGION) -DRX_CHANNEL=$(RX_CHANNEL)
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"
 OUTPUT:=$(NAME).$(subst :,.,$(FQBN))
 
@@ -12,17 +13,8 @@ build:
 	arduino-cli compile -t -b $(FQBN) -o $(OUTPUT).hex $(OPTS) $(NAME)
 	adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application $(OUTPUT).hex $(OUTPUT).zip
 
-transmitter:
-	$(MAKE) PORT=$(shell ls -1 /dev/tty.usbserial-A*) NAME=LoRaTransmitter build upload
-
-transmitter-mon:
-	$(MAKE) PORT=$(shell ls -1 /dev/tty.usbserial-A*)  mon
-
 receiver:
-	$(MAKE) PORT=$(shell ls -1 /dev/tty.usbserial-D*) NAME=LoRaReceiver build upload
-
-receiver-mon:
-	$(MAKE) PORT=$(shell ls -1 /dev/tty.usbserial-D*)  mon
+	$(MAKE) PORT=$(shell ls -1 /dev/tty.usbserial-D*) NAME=LoRaReceiver build
 
 upload:
 	arduino-cli upload -b $(FQBN) -p $(PORT) -i $(OUTPUT).hex
@@ -42,15 +34,15 @@ props:
 port:
 	@echo $(PORT)
 
+start:
+	go run tester.go -port $(PORT) -start 1
+
 erase:
 	# 約30秒
 	go run tester.go -port $(PORT) -erase
 
 check:
 	go run tester.go -port $(PORT) -check
-
-start:
-	go run tester.go -port $(PORT) -start 3
 
 stop:
 	go run tester.go -port $(PORT) -stop
