@@ -39,26 +39,52 @@ arduino-cli lib update-index
 arduino-cli lib install SX126x-Arduino
 ```
 
-## ビルド
+## LoRaTransmitterのビルド
 
 ```sh
 git clone https://github.com/144lab/isp4520-sample.git
 cd isp4520-sample
-make build
+make REGION=REGION_EU868 build # EU版
+make REGION=REGION_AS923 build # JP版
 ```
 
-## 書き込み
+## LoRaTransmitterの書き込み
+[ブートローダー:sirc_isp4520_bootloader-0.2.13-5-gc4cf262-dirty_s132_6.1.1.hex.zip](https://github.com/144lab/isp4520-sample/files/3982436/sirc_isp4520_bootloader-0.2.13-5-gc4cf262-dirty_s132_6.1.1.hex.zip)
+これを解凍してJLinkを使って書き込む。
+
 ターゲットをDFUモードにする（後述）
 ターゲットのシリアル通信ポートをPORT=に指定して以下のコマンドを実行。
+(実行後すぐにターゲットをリセットする)
 ```sh
 make PORT=COM4 upload
+```
+
+## LoRaReceiverのビルド
+
+```sh
+make NAME=LoRaReceiver RX_CHANNEL=0 REGION=REGION_EU868 build # EU版 チャンネル0
+make NAME=LoRaReceiver RX_CHANNEL=1 REGION=REGION_EU868 build # EU版 チャンネル1
+make NAME=LoRaReceiver RX_CHANNEL=2 REGION=REGION_EU868 build # EU版 チャンネル2
+make NAME=LoRaReceiver RX_CHANNEL=0 REGION=REGION_AS923 build # JP版 チャンネル0
+make NAME=LoRaReceiver RX_CHANNEL=1 REGION=REGION_AS923 build # JP版 チャンネル1
+make NAME=LoRaReceiver RX_CHANNEL=2 REGION=REGION_AS923 build # JP版 チャンネル2
+```
+
+## LoRaReceiverの書き込み
+[ブートローダー:isp4520_bootloader-0.2.13-5-gc4cf262-dirty_s132_6.1.1.hex.zip](https://github.com/144lab/isp4520-sample/files/3932885/isp4520_bootloader-0.2.13-5-gc4cf262-dirty_s132_6.1.1.hex.zip)
+これを解凍してJLinkを使って書き込む。
+
+ターゲットをDFUモードにする（後述）
+ターゲットのシリアル通信ポートをPORT=に指定して以下のコマンドを実行。
+(実行後すぐにターゲットをリセットする)
+```sh
+make NAME=LoRaReceiver PORT=COM5 upload
 ```
 
 ## DFUモードにする方法
 
 ブートローダーをビルドするときの設定で方法が決定する（ターゲットに依存）
 
-- P0_12をLoにしたままRESET(Samaritaine)
 - RESETして５秒間DFUモード（isp4520用）
 - RESETして10秒間DFUモード(リレー付きPOC基板)
 
