@@ -59,6 +59,10 @@ void setup() {
   Serial.println("setup completed");
 
   digitalWrite(LED1, 1);
+  WDT_Setup();
 }
 
-void loop() { Radio.IrqProcess(); }
+void loop() {
+  Radio.IrqProcess();
+  WDT_Clear();
+}

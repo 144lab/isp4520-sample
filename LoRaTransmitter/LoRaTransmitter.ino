@@ -200,7 +200,7 @@ void setup() {
   digitalWrite(LED2, 1);
   digitalWrite(LED1, 1);
 
-  // WDT_Setup();
+  WDT_Setup();
 }
 
 void loop() {
