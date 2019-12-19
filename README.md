@@ -87,7 +87,3 @@ make NAME=LoRaReceiver PORT=COM5 upload
 
 - RESETして５秒間DFUモード（isp4520用）
 - RESETして10秒間DFUモード(リレー付きPOC基板)
-
-## ブートローダーの入手
-
-https://github.com/144lab/isp4520-sample/issues/1 参照
