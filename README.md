@@ -87,3 +87,22 @@ make NAME=LoRaReceiver PORT=COM5 upload
 
 - RESETして５秒間DFUモード（isp4520用）
 - RESETして10秒間DFUモード(リレー付きPOC基板)
+
+## DIP-SW設定とチャンネル
+
+LoRaTransmitterのDIP-SWでノードIDを設定。
+
+スイッチの状態の意味は以下の通り
+- ON=0
+- OFF=1
+
+スイッチ番号とビットの関係
+
+|b6|b5|b4|b3|b2|b1|b0|
+|--|--|--|--|--|--|--|
+|SW7|SW6|SW5|SW4|SW3|SW2|SW1|
+
+ビット列を数値化して３で割った余りが送信チャンネル番号です。
+
+LoRaReceiverはビルド時に受信チャンネル番号を指定してビルドしますが、
+これらのチャンネル番号が一致しているもの同士だけが受信できます。
