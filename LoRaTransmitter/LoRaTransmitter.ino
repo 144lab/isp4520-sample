@@ -70,7 +70,7 @@ static void onCadDone(bool cadResult) {
   }
   txBuffer[10] = ~(sum - 1) & 0xff;
   if (cadResult) {
-    Radio.Rx(RX_TIMEOUT_VALUE);
+    startCad();
   } else {
     delay(randr(5, 1005));
     digitalWrite(LED2, 0);
@@ -105,6 +105,7 @@ void startCad() {
 }
 
 static void onInterval1Hz() {
+  Serial.println("interrupt");
   TimerSetValue(&appTimer, APP_TX_DUTYCYCLE);
   TimerStart(&appTimer);
   if (!sending && sendingDuration * 10 < millis() - timeToSent) {

@@ -6,6 +6,7 @@ RX_CHANNEL:=1
 CFLAGS:=-DCFG_DEBUG=0 -D$(REGION) -DRX_CHANNEL=$(RX_CHANNEL)
 OPTS:=--build-properties="build.debug_flags=$(CFLAGS)"
 OUTPUT:=$(NAME).$(subst :,.,$(FQBN))
+SERIAL:=1
 
 .PHONY: build upload setup mon
 
@@ -35,7 +36,7 @@ port:
 	@echo $(PORT)
 
 start:
-	go run tester.go -port $(PORT) -start 1
+	go run tester.go -port $(PORT) -start $(SERIAL)
 
 erase:
 	# 約30秒
