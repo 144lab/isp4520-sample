@@ -139,12 +139,16 @@ void onScanCallback(ble_gap_evt_adv_report_t *report) {
           Serial.printBuffer(&report->data.p_data[25], 5, '-');
           Serial.println();
           lastValues[kind][0] = sn;
-          lastValues[kind][1] = report->data.p_data[26];
-          lastValues[kind][2] = report->data.p_data[27];
-          if (kind) {
-            lastValues[kind][3] = report->data.p_data[28];
+          if (kind == 0) {
+            lastValues[kind][1] = report->data.p_data[28];
+            lastValues[kind][2] = report->data.p_data[27];
+            lastValues[kind][3] = report->data.p_data[29];
+          } else {
+            lastValues[kind][1] = report->data.p_data[28];
+            lastValues[kind][2] = report->data.p_data[27];
+            lastValues[kind][3] = report->data.p_data[26];
+            lastValues[kind][4] = report->data.p_data[29];
           }
-          lastValues[kind][3 + kind] = report->data.p_data[29];
         }
       }
     }
